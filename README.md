@@ -196,6 +196,3 @@ Guardia is in early beta. I have some ideas for the future — no promises:
 - Nested object validation
 - Collection validation (`List<T>`, `Map<K,V>`)
 - Custom error message templates
----
-
-> Built by [Arsam](https://github.com/arsam) as a deep dive into Java internals.
