@@ -9,6 +9,7 @@ public class Main {
         user.email = "not-an-email";
         user.random = 123;
         user.positiveInteger = 5;
+        user.notEmpty = null;
 
         var context = Guardia.of(user).validate();
         if (!context.isValid()) {
@@ -33,4 +34,7 @@ class User {
 
     @Positive
     int positiveInteger;
+
+    @NotEmpty
+    String notEmpty;
 }
