@@ -10,6 +10,7 @@ public class Main {
         user.random = 123;
         user.positiveInteger = 5;
         user.notEmpty = null;
+        user.longName = "Chrysanthemum.";
 
         var context = Guardia.of(user).validate();
         if (!context.isValid()) {
@@ -37,4 +38,7 @@ class User {
 
     @NotEmpty
     String notEmpty;
+
+    @MaxLength(value = 15, message = "Name too long")
+    String longName;
 }
