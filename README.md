@@ -20,6 +20,9 @@ src/main/java/com/guardia/
 ├── annotation/
 │   ├── NotNull.java              ← @NotNull
 │   ├── MinLength.java            ← @MinLength
+│   ├── MaxLength.java            ← @MaxLength
+│   ├── NotEmpty.java             ← @NotEmpty
+│   ├── Positive.java             ← @Positive
 │   ├── Email.java                ← @Email
 │   └── Range.java                ← @Range
 │
@@ -36,6 +39,9 @@ src/main/java/com/guardia/
 └── validator/
     ├── NotNullValidator.java
     ├── MinLengthValidator.java
+    ├── MaxLengthValidator.java
+    ├── NotEmptyValidator.java
+    ├── PositiveValidator.java
     ├── EmailValidator.java
     └── RangeValidator.java
 ```
@@ -49,11 +55,12 @@ src/main/java/com/guardia/
 ```java
 public class User {
 
-    @NotNull
+    @NotEmpty
     @MinLength(value = 3, message = "Name is too short")
+    @MaxLength(value = 50, message = "Name is too long")
     private String name;
 
-    @NotNull
+    @NotEmpty
     @Email
     private String email;
 
@@ -61,6 +68,8 @@ public class User {
     private int age;
 }
 ```
+
+`@NotEmpty` rejects both `null` and blank strings, while `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, and `@Range` validates numeric bounds.
 
 **2. Validate:**
 
@@ -89,46 +98,65 @@ if (!context.isValid()) {
 
 ## Built-in Annotations
 
-| Annotation | Target | Description |
+All built-in constraints target fields and are retained at runtime for reflection-based validation.
+
+| Annotation | Value | Description |
 |---|---|---|
-| `@NotNull` | Any | Field must not be null |
-| `@MinLength(value)` | String | Minimum character length |
-| `@Email` | String | Must be a valid email address |
-| `@Range(min, max)` | Number | Value must be within range |
+| `@NotNull` | — | Field must not be null |
+| `@NotEmpty` | — | String must not be null or blank |
+| `@MinLength(value)` | `int` | String length must be at least `value` |
+| `@MaxLength(value)` | `int` | String length must be at most `value` |
+| `@Email` | — | String must be a valid email address |
+| `@Range(min, max)` | `long` | Number must be within the inclusive range |
+| `@Positive` | — | Number must be greater than zero |
+
+### Null handling
+
+Length constraints and `@Positive` treat `null` as valid. Use `@NotNull` or `@NotEmpty` when a value is required.
+
+For example:
+
+```java
+@NotNull
+@Positive
+private Integer score;
+```
+
+This allows Guardia to distinguish between two separate rules: the value must exist, and when present, it must be positive.
 
 ---
 
 ## Adding a Custom Annotation
 
-Guardia is designed to be extended. Adding a new constraint never requires touching the engine.
+Guardia is designed to be extended. Adding a new constraint does not require modifying the validation engine.
 
 **1. Create the annotation:**
 
 ```java
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = PositiveValidator.class)
-public @interface Positive {
-    String message() default "Value must be positive";
+@Constraint(validatedBy = EvenValidator.class)
+public @interface Even {
+    String message() default "Value must be even";
 }
 ```
 
 **2. Create the validator:**
 
 ```java
-public class PositiveValidator implements ConstraintValidator<Positive, Number> {
+public class EvenValidator implements ConstraintValidator<Even, Number> {
 
     private String message;
 
     @Override
-    public void initialize(Positive annotation) {
+    public void initialize(Even annotation) {
         this.message = annotation.message();
     }
 
     @Override
     public boolean isValid(Number value) {
         if (value == null) return true;
-        return value.doubleValue() > 0;
+        return value.longValue() % 2 == 0;
     }
 
     @Override
@@ -141,8 +169,8 @@ public class PositiveValidator implements ConstraintValidator<Positive, Number> 
 **3. Use it:**
 
 ```java
-@Positive
-private int price;
+@Even
+private int quantity;
 ```
 
 That's it. No engine changes needed :D.
@@ -152,18 +180,24 @@ That's it. No engine changes needed :D.
 ## How It Works
 
 ```
-@NotNull, @Email, @Range         Annotations mark fields with rules
-         ↓
-    @Constraint                  Links each annotation to its validator
-         ↓
-    GuardiaEngine                Scans fields via Reflection at runtime
-         ↓
-  ConstraintValidator<A,T>       Generic interface — one per annotation
-         ↓
-    ValidationError              Captures field name, message, rejected value
-         ↓
-  ValidationException            Thrown with the full list of errors
+@NotNull, @NotEmpty, @MinLength, @MaxLength, @Email, @Range, @Positive
+                              ↓
+                         @Constraint
+                              ↓
+                  Links annotation to validator
+                              ↓
+                       GuardiaEngine
+                              ↓
+                 Scans fields via Reflection
+                              ↓
+                  ConstraintValidator<A,T>
+                              ↓
+                    ValidationError
+                              ↓
+              ValidationException (if invalid)
 ```
+
+Each built-in annotation is linked to its validator through `@Constraint`. The engine discovers annotated fields at runtime, initializes the corresponding validator with the annotation, and collects validation failures as `ValidationError` objects.
 
 ---
 
@@ -184,15 +218,15 @@ Guardia.of(object)          // Create a validation context
 
 - **Java 17+**
 - **Zero dependencies**
+
 ---
 
 ## What's Next
 
 Guardia is in early beta. I have some ideas for the future — no promises:
 
-- `@MaxLength` — maximum character length
 - `@Pattern` — regex-based validation
-- `@NotEmpty` — not null and not blank
 - Nested object validation
 - Collection validation (`List<T>`, `Map<K,V>`)
 - Custom error message templates
+- More built-in constraints
