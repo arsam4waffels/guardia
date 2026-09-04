@@ -1,9 +1,6 @@
 package com.guardia;
 
-import com.guardia.annotation.Email;
-import com.guardia.annotation.MinLength;
-import com.guardia.annotation.NotNull;
-import com.guardia.annotation.Range;
+import com.guardia.annotation.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -11,6 +8,7 @@ public class Main {
         user.name = "Arsam";
         user.email = "not-an-email";
         user.random = 123;
+        user.positiveInteger = 5;
 
         var context = Guardia.of(user).validate();
         if (!context.isValid()) {
@@ -32,4 +30,7 @@ class User {
 
     @Range(min = 0, max = 100, message = "Number must be between 0 and 100")
     int random;
+
+    @Positive
+    int positiveInteger;
 }
