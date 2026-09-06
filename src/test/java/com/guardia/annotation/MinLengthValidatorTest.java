@@ -65,7 +65,7 @@ class MinLengthValidatorTest {
     @Test
     void shouldPassWhenValueIsExactMinLength() {
         Model model = new Model();
-        model.value = "abc";    // دقیقاً ۳
+        model.value = "abc";
 
         assertTrue(Guardia.of(model).validate().isValid());
     }
@@ -81,7 +81,7 @@ class MinLengthValidatorTest {
     @Test
     void shouldPassWhenValueIsNull() {
         Model model = new Model();
-        model.value = null;     // null چک @NotNull کنه
+        model.value = null;
 
         assertTrue(Guardia.of(model).validate().isValid());
     }
