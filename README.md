@@ -64,12 +64,15 @@ public class User {
     @Email
     private String email;
 
+    @Pattern(regex = "^[A-Z]{2}\\\\d{4}$", message = "Code must match the required format")
+    private String code;
+
     @Range(min = 18, max = 100, message = "Age must be between 18 and 100")
     private int age;
 }
 ```
 
-`@NotEmpty` rejects both `null` and blank strings, while `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, and `@Range` validates numeric bounds.
+`@NotEmpty` rejects both `null` and blank strings, while `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, `@Range` validates numeric bounds, and `@Pattern` validates strings against a regular expression.
 
 **2. Validate:**
 
@@ -109,10 +112,11 @@ All built-in constraints target fields and are retained at runtime for reflectio
 | `@Email` | — | String must be a valid email address |
 | `@Range(min, max)` | `long` | Number must be within the inclusive range |
 | `@Positive` | — | Number must be greater than zero |
+| `@Pattern(regex)` | `String` | String must match the supplied regular expression |
 
 ### Null handling
 
-Length constraints and `@Positive` treat `null` as valid. Use `@NotNull` or `@NotEmpty` when a value is required.
+Length constraints, `@Positive`, and `@Pattern` treat `null` as valid. Use `@NotNull` or `@NotEmpty` when a value is required.
 
 For example:
 
@@ -180,7 +184,7 @@ That's it. No engine changes needed :D.
 ## How It Works
 
 ```
-@NotNull, @NotEmpty, @MinLength, @MaxLength, @Email, @Range, @Positive
+@NotNull, @NotEmpty, @MinLength, @MaxLength, @Email, @Range, @Positive, @Pattern
                               ↓
                          @Constraint
                               ↓
@@ -225,7 +229,6 @@ Guardia.of(object)          // Create a validation context
 
 Guardia is in early beta. I have some ideas for the future — no promises:
 
-- `@Pattern` — regex-based validation
 - Nested object validation
 - Collection validation (`List<T>`, `Map<K,V>`)
 - Custom error message templates
