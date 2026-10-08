@@ -1,20 +1,20 @@
 package com.guardia.validator;
 
-import com.guardia.annotation.NotEmpty;
+import com.guardia.annotation.NotBlank;
 import com.guardia.core.ConstraintValidator;
 
-public class NotEmptyValidator implements ConstraintValidator<NotEmpty, String> {
+public class NotBlankValidator implements ConstraintValidator<NotBlank, String> {
 
     private String message;
 
     @Override
-    public void initialize(NotEmpty annotation) {
+    public void initialize(NotBlank annotation) {
         this.message = annotation.message();
     }
 
     @Override
     public boolean isValid(String value) {
-        return value != null && !value.isEmpty();
+        return value != null && !value.isBlank();
     }
 
     @Override
