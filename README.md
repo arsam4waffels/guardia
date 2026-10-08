@@ -41,6 +41,7 @@ src/main/java/com/guardia/
     ├── MinLengthValidator.java
     ├── MaxLengthValidator.java
     ├── NotEmptyValidator.java
+    ├── NotBlankValidator.java
     ├── PositiveValidator.java
     ├── EmailValidator.java
     ├── RangeValidator.java
@@ -56,12 +57,12 @@ src/main/java/com/guardia/
 ```java
 public class User {
 
-    @NotEmpty
+    @NotBlank
     @MinLength(value = 3, message = "Name is too short")
     @MaxLength(value = 50, message = "Name is too long")
     private String name;
 
-    @NotEmpty
+    @NotBlank
     @Email
     private String email;
 
@@ -73,7 +74,7 @@ public class User {
 }
 ```
 
-`@NotEmpty` rejects both `null` and blank strings, while `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, `@Range` validates numeric bounds, and `@Pattern` validates strings against a regular expression.
+`@NotEmpty` rejects `null` and empty strings, while `@NotBlank` also rejects whitespace-only strings. `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, `@Range` validates numeric bounds, and `@Pattern` validates strings against a regular expression.
 
 **2. Validate:**
 
@@ -107,7 +108,8 @@ All built-in constraints target fields and are retained at runtime for reflectio
 | Annotation | Value | Description |
 |---|---|---|
 | `@NotNull` | — | Field must not be null |
-| `@NotEmpty` | — | String must not be null or blank |
+| `@NotBlank` | — | String must not be null, empty, or whitespace-only |
+| `@NotEmpty` | — | String must not be null or empty |
 | `@MinLength(value)` | `int` | String length must be at least `value` |
 | `@MaxLength(value)` | `int` | String length must be at most `value` |
 | `@Email` | — | String must be a valid email address |
@@ -185,7 +187,7 @@ That's it. No engine changes needed :D.
 ## How It Works
 
 ```
-@NotNull, @NotEmpty, @MinLength, @MaxLength, @Email, @Range, @Positive, @Pattern
+@NotNull, @NotEmpty, @NotBlank, @MinLength, @MaxLength, @Email, @Range, @Positive, @Pattern
                               ↓
                          @Constraint
                               ↓
