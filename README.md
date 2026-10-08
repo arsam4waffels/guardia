@@ -43,7 +43,8 @@ src/main/java/com/guardia/
     ├── NotEmptyValidator.java
     ├── PositiveValidator.java
     ├── EmailValidator.java
-    └── RangeValidator.java
+    ├── RangeValidator.java
+    └── PatternValidator.java
 ```
 
 ---
@@ -64,7 +65,7 @@ public class User {
     @Email
     private String email;
 
-    @Pattern(regex = "^[A-Z]{2}\\\\d{4}$", message = "Code must match the required format")
+    @Pattern(regex = "^[A-Z]{2}\\d{4}$", message = "Code must match the required format")
     private String code;
 
     @Range(min = 18, max = 100, message = "Age must be between 18 and 100")
