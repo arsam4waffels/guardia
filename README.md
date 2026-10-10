@@ -19,12 +19,15 @@ src/main/java/com/guardia/
 │
 ├── annotation/
 │   ├── NotNull.java              ← @NotNull
+│   ├── NotBlank.java             ← @NotBlank
+│   ├── NotEmpty.java             ← @NotEmpty
 │   ├── MinLength.java            ← @MinLength
 │   ├── MaxLength.java            ← @MaxLength
-│   ├── NotEmpty.java             ← @NotEmpty
 │   ├── Positive.java             ← @Positive
+│   ├── PositiveOrZero.java       ← @PositiveOrZero
 │   ├── Email.java                ← @Email
-│   └── Range.java                ← @Range
+│   ├── Range.java                ← @Range
+│   └── Pattern.java              ← @Pattern
 │
 ├── core/
 │   ├── Constraint.java           ← Links annotation to validator
@@ -38,11 +41,12 @@ src/main/java/com/guardia/
 │
 └── validator/
     ├── NotNullValidator.java
+    ├── NotBlankValidator.java
+    ├── NotEmptyValidator.java
     ├── MinLengthValidator.java
     ├── MaxLengthValidator.java
-    ├── NotEmptyValidator.java
-    ├── NotBlankValidator.java
     ├── PositiveValidator.java
+    ├── PositiveOrZeroValidator.java
     ├── EmailValidator.java
     ├── RangeValidator.java
     └── PatternValidator.java
@@ -69,12 +73,15 @@ public class User {
     @Pattern(regex = "^[A-Z]{2}\\d{4}$", message = "Code must match the required format")
     private String code;
 
+    @PositiveOrZero(message = "Balance cannot be negative")
+    private double balance;
+
     @Range(min = 18, max = 100, message = "Age must be between 18 and 100")
     private int age;
 }
 ```
 
-`@NotEmpty` rejects `null` and empty strings, while `@NotBlank` also rejects whitespace-only strings. `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, `@Range` validates numeric bounds, and `@Pattern` validates strings against a regular expression.
+`@NotEmpty` rejects `null` and empty strings, while `@NotBlank` also rejects whitespace-only strings. `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, `@Range` validates numeric bounds, and `@Pattern` validates strings against a regular expression. `@Positive` requires a value greater than zero; `@PositiveOrZero` allows zero as well.
 
 **2. Validate:**
 
@@ -83,8 +90,8 @@ User user = new User();
 user.setName("Arsam");
 user.setEmail("arsam@waffels.com");
 user.setAge(21);
+user.setBalance(0);
 
-// Throw if invalid
 Guardia.of(user)
        .validate()
        .throwIfInvalid();
@@ -109,27 +116,28 @@ All built-in constraints target fields and are retained at runtime for reflectio
 |---|---|---|
 | `@NotNull` | — | Field must not be null |
 | `@NotBlank` | — | String must not be null, empty, or whitespace-only |
-| `@NotEmpty` | — | String must not be null or empty |
+| `@NotEmpty` | — | String must not be null or empty; whitespace-only strings are allowed |
 | `@MinLength(value)` | `int` | String length must be at least `value` |
 | `@MaxLength(value)` | `int` | String length must be at most `value` |
 | `@Email` | — | String must be a valid email address |
 | `@Range(min, max)` | `long` | Number must be within the inclusive range |
 | `@Positive` | — | Number must be greater than zero |
+| `@PositiveOrZero` | — | Number must be zero or greater |
 | `@Pattern(regex)` | `String` | String must match the supplied regular expression |
 
 ### Null handling
 
-Length constraints, `@Positive`, and `@Pattern` treat `null` as valid. Use `@NotNull` or `@NotEmpty` when a value is required.
+Length constraints, `@Positive`, `@PositiveOrZero`, and `@Pattern` treat `null` as valid. Use `@NotNull`, `@NotEmpty`, or `@NotBlank` when a value is required.
 
 For example:
 
 ```java
 @NotNull
-@Positive
-private Integer score;
+@PositiveOrZero
+private Integer retryCount;
 ```
 
-This allows Guardia to distinguish between two separate rules: the value must exist, and when present, it must be positive.
+This separates two rules: the value must exist, and when present, it must not be negative.
 
 ---
 
@@ -180,28 +188,29 @@ public class EvenValidator implements ConstraintValidator<Even, Number> {
 private int quantity;
 ```
 
-That's it. No engine changes needed :D.
+No validation engine changes are needed.
 
 ---
 
 ## How It Works
 
 ```
-@NotNull, @NotEmpty, @NotBlank, @MinLength, @MaxLength, @Email, @Range, @Positive, @Pattern
-                              ↓
-                         @Constraint
-                              ↓
-                  Links annotation to validator
-                              ↓
-                       GuardiaEngine
-                              ↓
-                 Scans fields via Reflection
-                              ↓
-                  ConstraintValidator<A,T>
-                              ↓
-                    ValidationError
-                              ↓
-              ValidationException (if invalid)
+@NotNull, @NotBlank, @NotEmpty, @MinLength, @MaxLength,
+@Email, @Range, @Positive, @PositiveOrZero, @Pattern
+                         ↓
+                    @Constraint
+                         ↓
+              Links annotation to validator
+                         ↓
+                  GuardiaEngine
+                         ↓
+             Scans fields via Reflection
+                         ↓
+              ConstraintValidator<A,T>
+                         ↓
+                 ValidationError
+                         ↓
+           ValidationException (if invalid)
 ```
 
 Each built-in annotation is linked to its validator through `@Constraint`. The engine discovers annotated fields at runtime, initializes the corresponding validator with the annotation, and collects validation failures as `ValidationError` objects.
@@ -224,13 +233,13 @@ Guardia.of(object)          // Create a validation context
 ## Tech
 
 - **Java 17+**
-- **Zero dependencies**
+- **Zero runtime dependencies**
 
 ---
 
 ## What's Next
 
-Guardia is in early beta. I have some ideas for the future — no promises:
+Guardia is in early beta. Possible future directions:
 
 - Nested object validation
 - Collection validation (`List<T>`, `Map<K,V>`)
