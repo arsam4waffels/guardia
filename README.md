@@ -1,7 +1,7 @@
 # Guardia
 
 A lightweight, annotation-based Java validation library built from scratch.  
-Guardia lets you validate any object using simple annotations — no configuration, no dependencies.
+Guardia lets you validate any object using simple annotations — no configuration, no runtime dependencies.
 
 ```java
 Guardia.of(user)
@@ -15,29 +15,30 @@ Guardia.of(user)
 
 ```
 src/main/java/com/guardia/
-│   Guardia.java                  ← Entry point
+│   Guardia.java
 │
 ├── annotation/
-│   ├── NotNull.java              ← @NotNull
-│   ├── NotBlank.java             ← @NotBlank
-│   ├── NotEmpty.java             ← @NotEmpty
-│   ├── MinLength.java            ← @MinLength
-│   ├── MaxLength.java            ← @MaxLength
-│   ├── Positive.java             ← @Positive
-│   ├── PositiveOrZero.java       ← @PositiveOrZero
-│   ├── Email.java                ← @Email
-│   ├── Range.java                ← @Range
-│   └── Pattern.java              ← @Pattern
+│   ├── NotNull.java
+│   ├── NotBlank.java
+│   ├── NotEmpty.java
+│   ├── MinLength.java
+│   ├── MaxLength.java
+│   ├── Size.java
+│   ├── Positive.java
+│   ├── PositiveOrZero.java
+│   ├── Email.java
+│   ├── Range.java
+│   └── Pattern.java
 │
 ├── core/
-│   ├── Constraint.java           ← Links annotation to validator
-│   ├── ConstraintValidator.java  ← Generic validator interface
-│   ├── GuardiaContext.java       ← Fluent API context
-│   └── GuardiaEngine.java        ← Reflection engine
+│   ├── Constraint.java
+│   ├── ConstraintValidator.java
+│   ├── GuardiaContext.java
+│   └── GuardiaEngine.java
 │
 ├── exception/
-│   ├── ValidationException.java  ← Thrown when validation fails
-│   └── ValidationError.java      ← Single field error model
+│   ├── ValidationException.java
+│   └── ValidationError.java
 │
 └── validator/
     ├── NotNullValidator.java
@@ -45,6 +46,7 @@ src/main/java/com/guardia/
     ├── NotEmptyValidator.java
     ├── MinLengthValidator.java
     ├── MaxLengthValidator.java
+    ├── SizeValidator.java
     ├── PositiveValidator.java
     ├── PositiveOrZeroValidator.java
     ├── EmailValidator.java
@@ -62,8 +64,7 @@ src/main/java/com/guardia/
 public class User {
 
     @NotBlank
-    @MinLength(value = 3, message = "Name is too short")
-    @MaxLength(value = 50, message = "Name is too long")
+    @Size(min = 3, max = 50, message = "Name length is invalid")
     private String name;
 
     @NotBlank
@@ -81,7 +82,7 @@ public class User {
 }
 ```
 
-`@NotEmpty` rejects `null` and empty strings, while `@NotBlank` also rejects whitespace-only strings. `@MinLength` and `@MaxLength` enforce string length limits. `@Email` validates the email format, `@Range` validates numeric bounds, and `@Pattern` validates strings against a regular expression. `@Positive` requires a value greater than zero; `@PositiveOrZero` allows zero as well.
+`@NotEmpty` rejects `null` and empty strings, while `@NotBlank` also rejects whitespace-only strings. `@Size` validates the size of strings, collections, maps, and arrays. `@Positive` requires a value greater than zero; `@PositiveOrZero` allows zero as well. `@Email` validates the email format, `@Range` validates numeric bounds, and `@Pattern` validates strings against a regular expression.
 
 **2. Validate:**
 
@@ -96,12 +97,12 @@ Guardia.of(user)
        .validate()
        .throwIfInvalid();
 
-// Or check manually
+// Or inspect validation errors
 var context = Guardia.of(user).validate();
 
 if (!context.isValid()) {
-    context.getErrors().forEach(e ->
-        System.out.println("[FAIL] " + e.getFieldName() + ": " + e.getMessage())
+    context.getErrors().forEach(error ->
+        System.out.println("[FAIL] " + error.getFieldName() + ": " + error.getMessage())
     );
 }
 ```
@@ -119,15 +120,30 @@ All built-in constraints target fields and are retained at runtime for reflectio
 | `@NotEmpty` | — | String must not be null or empty; whitespace-only strings are allowed |
 | `@MinLength(value)` | `int` | String length must be at least `value` |
 | `@MaxLength(value)` | `int` | String length must be at most `value` |
+| `@Size(min, max)` | `int` | Size must be within inclusive bounds for strings, collections, maps, and arrays |
 | `@Email` | — | String must be a valid email address |
 | `@Range(min, max)` | `long` | Number must be within the inclusive range |
 | `@Positive` | — | Number must be greater than zero |
 | `@PositiveOrZero` | — | Number must be zero or greater |
 | `@Pattern(regex)` | `String` | String must match the supplied regular expression |
 
+### Size validation
+
+`@Size` supports `CharSequence`, `Collection`, `Map`, and array fields. The bounds are inclusive; `min` defaults to `0`, and `max` defaults to `Integer.MAX_VALUE`.
+
+```java
+@Size(min = 1, max = 10)
+private List<String> tags;
+
+@Size(min = 2, max = 5)
+private String code;
+```
+
+A `null` value is considered valid by `@Size`; combine it with `@NotNull` or another presence constraint when the field is required. Invalid bounds (`min < 0` or `max < min`) are rejected.
+
 ### Null handling
 
-Length constraints, `@Positive`, `@PositiveOrZero`, and `@Pattern` treat `null` as valid. Use `@NotNull`, `@NotEmpty`, or `@NotBlank` when a value is required.
+`@MinLength`, `@MaxLength`, `@Size`, `@Positive`, `@PositiveOrZero`, and `@Pattern` treat `null` as valid. Use `@NotNull`, `@NotEmpty`, or `@NotBlank` when a value is required.
 
 For example:
 
@@ -195,22 +211,21 @@ No validation engine changes are needed.
 ## How It Works
 
 ```
-@NotNull, @NotBlank, @NotEmpty, @MinLength, @MaxLength,
-@Email, @Range, @Positive, @PositiveOrZero, @Pattern
-                         ↓
-                    @Constraint
-                         ↓
-              Links annotation to validator
-                         ↓
-                  GuardiaEngine
-                         ↓
-             Scans fields via Reflection
-                         ↓
-              ConstraintValidator<A,T>
-                         ↓
-                 ValidationError
-                         ↓
-           ValidationException (if invalid)
+Built-in annotations
+        ↓
+   @Constraint
+        ↓
+Links annotation to validator
+        ↓
+   GuardiaEngine
+        ↓
+Scans fields via Reflection
+        ↓
+ConstraintValidator<A,T>
+        ↓
+  ValidationError
+        ↓
+ValidationException (if invalid)
 ```
 
 Each built-in annotation is linked to its validator through `@Constraint`. The engine discovers annotated fields at runtime, initializes the corresponding validator with the annotation, and collects validation failures as `ValidationError` objects.
@@ -242,6 +257,6 @@ Guardia.of(object)          // Create a validation context
 Guardia is in early beta. Possible future directions:
 
 - Nested object validation
-- Collection validation (`List<T>`, `Map<K,V>`)
+- Collection element validation
 - Custom error message templates
 - More built-in constraints
